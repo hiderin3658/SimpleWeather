@@ -9,12 +9,14 @@ import SwiftUI
 
 @main
 struct SimpleWeatherApp: App {
-    let persistenceController = PersistenceController.shared
-
+    // Core Dataコントローラを初期化
+    let dataController = DataController.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                // ContentViewにCore Dataコンテキストを提供
+                .environment(\.managedObjectContext, dataController.container.viewContext)
         }
     }
 }

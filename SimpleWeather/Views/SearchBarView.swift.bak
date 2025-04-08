@@ -1,0 +1,153 @@
+import SwiftUI
+
+struct SearchBarView: View {
+    @Binding var searchTerm: String
+    @Binding var showingSearchHistory: Bool
+    var searchHistory: [SearchHistory]
+    var onSearch: () -> Void
+    var onHistoryItemSelected: (SearchHistory) -> Void
+    var onSearchFieldTapped: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                
+                TextField("地名や郵便番号を入力", text: $searchTerm)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .onTapGesture {
+                        onSearchFieldTapped()
+                    }
+                
+                if !searchTerm.isEmpty {
+                    Button(action: {
+                        searchTerm = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(10)
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
+            
+            // 検索履歴
+            if showingSearchHistory && !searchHistory.isEmpty {
+                SearchHistoryView(
+                    searchHistory: searchHistory,
+                    onHistoryItemSelected: onHistoryItemSelected
+                )
+            }
+            
+            Button(action: onSearch) {
+                Text("検索")
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .disabled(searchTerm.isEmpty)
+            .opacity(searchTerm.isEmpty ? 0.6 : 1.0)
+        }
+        .padding()
+    }
+}
+
+struct SearchHistoryView: View {
+    let searchHistory: [SearchHistory]
+    let onHistoryItemSelected: (SearchHistory) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("最近の検索")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.top, 5)
+            
+            ForEach(searchHistory) { history in
+                SearchHistoryItemView(history: history)
+                    .onTapGesture {
+                        onHistoryItemSelected(history)
+                    }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.bottom, 5)
+    }
+}
+
+struct SearchHistoryItemView: View {
+    let history: SearchHistory
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "clock.arrow.circlepath")
+                .foregroundColor(.secondary)
+                .frame(width: 25)
+            
+            VStack(alignment: .leading) {
+                if let searchTerm = history.searchTerm {
+                    Text(searchTerm)
+                        .font(.subheadline)
+                }
+                
+                if let locationName = history.locationName {
+                    Text(locationName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            // temperatureは非Optionalなので直接使用する
+            Text(String(format: "%.1f°C", history.temperature))
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            // 天気アイコン（オプション）
+            if let icon = history.weatherIcon, !icon.isEmpty {
+                AsyncImage(url: URL(string: "https:\(icon)")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 30, height: 30)
+                } placeholder: {
+                    Image(systemName: "cloud")
+                        .frame(width: 30, height: 30)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.5))
+        .cornerRadius(8)
+        .padding(.horizontal, 5)
+    }
+}
+
+struct SearchBarView_Previews: PreviewProvider {
+    static var previews: some View {
+        // サンプルデータを作成
+        let previewContext = DataController.preview.container.viewContext
+        let sampleHistory = SearchHistory.fetchLatestHistory(in: previewContext)
+        
+        return SearchBarView(
+            searchTerm: .constant("東京"),
+            showingSearchHistory: .constant(true),
+            searchHistory: sampleHistory,
+            onSearch: {},
+            onHistoryItemSelected: { _ in },
+            onSearchFieldTapped: {}
+        )
+        .previewLayout(.sizeThatFits)
+        .padding()
+    }
+} 
